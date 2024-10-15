@@ -1,43 +1,41 @@
 import streamlit as st
 import plotly.express as px
-import json
+import json 
 from Mundo import *
 
-africa = mundo[mundo["continente"]=="Africa"]
-africa_populosos = africa[africa["ano"]==2007].sort_values("pop", ascending=False)
+oceania = mundo[mundo["continente"]=="Oceania"]
+oceania_populosos = oceania[oceania["ano"]==2007].sort_values("pop", ascending=False)
 
-st.set_page_config(page_title="Africa", page_icon="🇿🇦", layout="wide")
+st.set_page_config(page_title="Oceania", page_icon="🇦🇺", layout="wide")
 
-st.subheader("África")
+st.subheader("Oceania")
 st.markdown("""
-            A África é o terceiro continente mais extenso, depois da Ásia e da América.
+            A Oceania é um continente insular, composto por regiões da Ásia e da América.
             
             Ela é dividida entre:
-            - África Setentrional
-            - África Ocidental
-            - África Central
-            - África Oriental
-            - África Austral
+            - Australásia
+            - Melanésia
+            - Micronésia
+            - Polinésia
             
-            Seus principais países são: África do Sul, Nigéria, Etiópia, Egito e República Democrática do Congo.
+            Seus principais países são: Austrália e Nova Zelândia.
             """)
-
 st.divider()
 
-fig9 = px.bar(
-        africa_populosos,
+fig11 = px.bar(
+        oceania_populosos,
         x="país",
         y="pop",
         color="pop",
-        color_continuous_scale="oranges",
+        color_continuous_scale="reds",
         text_auto=True
-    ).update_layout(title="Populações Africanas",
+    ).update_layout(title="Populações Oceania",
                         xaxis_title="Países",
                         yaxis_title="População",
                         legend_title="População",
                     template="plotly_white",hovermode="x").update_traces(hovertemplate=None)
 
-fig10 = px.scatter(africa[africa["ano"]==2007],
+fig12 = px.scatter(oceania[oceania["ano"]==2007],
                                  x="PIBpercap",
                                  y="ExpVida",
                                  color="país",
@@ -46,10 +44,11 @@ fig10 = px.scatter(africa[africa["ano"]==2007],
                                  template="plotly_white",
                                  log_x=True,
                                  hover_data={"pop":False}
-    ).update_layout(title="Indicadores Socioeconômicos Africanos",
+    ).update_layout(title="Indicadores Socioeconômicos Oceania",
                   xaxis_title = "PIB per Capita",
                   yaxis_title = "Expectativa de Vida").update_traces(hovertemplate=None)
 
 col1, col2 = st.columns(2)
-col1.plotly_chart(fig9)
-col2.plotly_chart(fig10)
+
+col1.plotly_chart(fig11)
+col2.plotly_chart(fig12)
