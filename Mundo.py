@@ -1,13 +1,12 @@
 import streamlit as st
 import plotly.express as px
 import json
+import numpy as np
 
 # Dashboard Mundo
 
 st.set_page_config(page_title="Mundo", page_icon="🌍", layout="wide")
 
-if 'my_data' not in st.session_state:
-    st.session_state.my_data = "Dados globais compartilhados"
 
 st.sidebar.markdown("Desenvolvido por [João Ricardo](https://github.com/Joao-Ricardo-Arcoverde)")
 st.sidebar.markdown("Documentação [Streamlit](https://docs.streamlit.io/library/api-reference)")
@@ -30,6 +29,7 @@ st.markdown("""
 
 st.divider()
 
+
 linhas_territoriais = json.load(open("world-countries.json",'r'))
 mundo = px.data.gapminder().rename(columns={"country":"país",
                               "continent":"continente",
@@ -41,92 +41,114 @@ mundo = px.data.gapminder().rename(columns={"country":"país",
                                 "iso_num":"num_sigla",
                                  })
 
-def mapa_mundi(lat, lon):
-     fig1 = px.choropleth_mapbox(mundo,
+contintente_escolhido = st.multiselect("Seleção de continente(s)",
+                   mundo["continente"].unique(),
+                   mundo["continente"].unique())
+
+# DADOS
+mundo_escolhido = mundo[(mundo["continente"].isin(contintente_escolhido))]
+## PEGANDO O PAÍS MAIS POPULOSO E SUA QUANTIDADE
+país_mais_populoso = mundo_escolhido.loc[mundo_escolhido['pop'].idxmax()]["país"]
+população_país_mais_populoso = mundo_escolhido[mundo_escolhido["ano"]==2007]["pop"].max()
+
+## PEGANDO O MAIS LONGEVO E SUA QUANTIDADE
+país_mais_longevo = mundo_escolhido.loc[mundo_escolhido['ExpVida'].idxmax()]["país"]
+anos_mais_longevo = mundo_escolhido[mundo_escolhido["ano"]==2007]["ExpVida"].max()
+
+## PEGANDO O MAIS RICO E SUA QUANTIDADE
+país_mais_rico = mundo.loc[mundo_escolhido['PIBpercap'].idxmax()]["país"]
+qtd_mais_rico = mundo_escolhido[mundo_escolhido["ano"]==2007]["PIBpercap"].max()
+
+## PEGANDO UMA LISTA DOS 5 MAIS POPULOSOS E FAZENDO UM DF DELES
+lista_paises_mais_populosos = mundo_escolhido[mundo_escolhido["ano"]==2007].sort_values(by="pop", ascending=False).reset_index().head(5)["país"].unique()
+df_paises_mais_populosos = mundo_escolhido[mundo_escolhido["país"].isin(lista_paises_mais_populosos)]
+
+## PEGANDO UMA LISTA DOS 5 MAIS RICOS E FAZENDO UM DF DELES
+lista_paises_mais_ricos = mundo_escolhido[mundo_escolhido["ano"]==2007].sort_values(by="PIBpercap", ascending=False).reset_index().head(5)["país"].unique()
+df_paises_mais_ricos = mundo_escolhido[mundo_escolhido["país"].isin(lista_paises_mais_ricos)]
+
+## PEGANDO UMA LISTA DOS 5 MAIS LONGEVOS E FAZENDO UM DF DELES
+lista_paises_mais_longevos = mundo_escolhido[mundo_escolhido["ano"]==2007].sort_values(by="ExpVida", ascending=False).reset_index().head(5)["país"].unique()
+df_paises_mais_longevos = mundo_escolhido[mundo_escolhido["país"].isin(lista_paises_mais_longevos)]
+
+## CRIANDO UM DF PARA APRESENTAR NO ST.DATAFRAME()
+dados_df = mundo_escolhido[mundo_escolhido["ano"]==2007].drop(columns=["sigla","num_sigla","ano"])
+
+fig1 = px.choropleth_mapbox(mundo_escolhido,
                      geojson=linhas_territoriais,
                      locations="sigla",
-                     color="pop",
-                     color_continuous_scale="Sunsetdark",
-                     mapbox_style="open-street-map",
+                     color=mundo_escolhido.select_dtypes(include=[np.number]).apply(np.log10)["pop"],
+                     color_continuous_scale="blues",
+                     mapbox_style="carto-positron",
                      zoom=1.1,
-                     opacity=1,
-                     width=1300,
+                     opacity=0.8,
+                     width=1150,
                      height=700,
-                     center={"lat":lat, "lon":lon})
-     fig1.update_geos(fitbounds="locations", visible=False)
-     fig1.update_layout(title="Mapa-múndi",
+                     center={"lat":20, "lon":0},
+        hover_data = {"país":True,"pop":True}).update_layout(title="Mapa-múndi",
                     xaxis_title="Longitude",
                     yaxis_title="Latitude",
-                    legend_title="População")
+                    legend_title="População",
+                    coloraxis_showscale=False,
+                    mapbox_pitch = 10,
+                    mapbox_bearing = 0)
 
-     return fig1
+fig2 = px.line(df_paises_mais_populosos,
+                                 x="ano",
+                                 y="pop",
+                                 color="país",
+                                 log_y=True,
+                                 width=400).update_layout(hovermode="x",
+                                                           title="Crescimento populacional",
+                                                           xaxis_title="Ano",
+                                                           yaxis_title="População").update_traces(hovertemplate=None,line_shape ="spline")
 
+fig3 = px.line(df_paises_mais_ricos,
+                                 x="ano",
+                                 y="PIBpercap",
+                                 color="país",
+                                 log_y=True,
+                                 width=400).update_layout(hovermode="x",
+                                                           title="Desenvolvimento econômico",
+                                                           xaxis_title="Ano",
+                                                           yaxis_title="PIB per Capita").update_traces(hovertemplate=None,line_shape ="spline")
 
-st.markdown("**Clique abaixo para visualizar o mapa-múndi**") 
+fig4 = px.line(df_paises_mais_longevos,
+                                 x="ano",
+                                 y="ExpVida",
+                                 color="país",
+                                 log_y=True,
+                                 width=400).update_layout(hovermode="x",
+                                                           title="Evolução da expectativa de vida",
+                                                           xaxis_title="Ano",
+                                                           yaxis_title="Expectativa de Vida").update_traces(hovertemplate=None,line_shape ="spline")
 
-btn = st.button("Mapa-múndi")
+fig5 = px.scatter(mundo[mundo["ano"]==2007],
+                                 x="PIBpercap",
+                                 y="ExpVida",
+                                 color="país",
+                                 size="pop",
+                                 size_max=45,
+                                 template="plotly_white",
+                                 log_x=True,
+                                 hover_data={"pop":False}
+    ).update_layout(title="Gráfico de Bolhas - Indicadores Socioeconômicos Mundiais",
+                  xaxis_title = "PIB per Capita",
+                  yaxis_title = "Expectativa de Vida")
+container1 = st.container(border=True)
 
-if btn:
-    st.plotly_chart(mapa_mundi(20,0))
-    col1, col2, col3 = st.columns(3)
-    col1.metric(label="População Mundial", value=f"{mundo[mundo['ano']==2007]['pop'].sum():,.0f}")
-    col2.metric(label="Países", value=f"{mundo['país'].nunique()}")
-    col3.metric(label="Continentes", value=f"{mundo['continente'].nunique()}")
+col1, col2, col3 = container1.columns(spec = 3, gap="small" )
 
+col1.metric(label="País Mais Populoso", value=país_mais_populoso)
+col1.metric(label="População", value=f"{população_país_mais_populoso:,.0f}")
+col2.metric(label="País Mais Longevo", value=país_mais_longevo)
+col2.metric(label="Longevidade", value=f"{anos_mais_longevo:,.0f} anos")
+col3.metric(label="País Mais Rico", value=país_mais_rico)
+col3.metric(label="PIB per Capita", value=f"${qtd_mais_rico:,.0f} por habitante")
 
-def grafico_barras_populosos(continente, tema):
-    continente = mundo[mundo["continente"]==continente]
-    continente_2007_populosos = continente[continente["ano"]==2007].sort_values("pop", ascending=False).head(5)
+st.plotly_chart(fig1)
 
-    fig1 = px.bar(
-        continente_2007_populosos,
-        x="país",
-        y="pop",
-        color="pop",
-        color_continuous_scale=tema,
-        text_auto=True
-    )
-    fig1.update_layout(title="Os 5 países mais populosos em 2007",
-                        xaxis_title="Países",
-                        yaxis_title="População",
-                        legend_title="População")
-
-    return fig1
-
-def grafico_bolhas(continente):
-    continente = mundo[mundo["continente"]==continente]
-    fig2 = px.scatter(
-        continente[continente["ano"]==2007],
-        x="ExpVida",
-        y="PIBpercap",
-        size="pop",
-        color="país",
-        color_discrete_sequence=px.colors.qualitative.Set1,
-        log_y=True,
-        size_max=60,
-        range_x=[40,85]
-    )
-
-
-    fig2.update_layout(title="Expectativa de vida x PIB per capita",
-                        xaxis_title="Expectativa de vida",
-                        yaxis_title="PIB per capita",
-                        legend_title="Países")
-
-    return fig2
-
-def calcular_metricas_continente(continente):
-    continente_data = mundo[mundo['continente'] == continente]
-    
-    mais_populoso = continente_data.loc[continente_data['pop'].idxmax()]["país"]
-    maior_expectativa_vida = continente_data.loc[continente_data['ExpVida'].idxmax()]["país"]
-    maior_pib_per_capita = continente_data.loc[continente_data['PIBpercap'].idxmax()]["país"]
-    menos_populoso = continente_data.loc[continente_data['pop'].idxmin()]["país"]
-    menor_expectativa_vida = continente_data.loc[continente_data['ExpVida'].idxmin()]["país"]
-    menor_pib_per_capita = continente_data.loc[continente_data['PIBpercap'].idxmin()]["país"]
-    
-    return mais_populoso, maior_expectativa_vida, maior_pib_per_capita, menos_populoso, menor_expectativa_vida, menor_pib_per_capita
-
-
-
-
+col4, col5, col6 = st.columns(3)
+col4.plotly_chart(fig2)
+col5.plotly_chart(fig3)
+col6.plotly_chart(fig4)
