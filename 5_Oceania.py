@@ -3,6 +3,9 @@ import plotly.express as px
 import json 
 from Mundo import *
 
+oceania = mundo[mundo["continente"]=="Oceania"]
+oceania_populosos = oceania[oceania["ano"]==2007].sort_values("pop", ascending=False)
+
 st.set_page_config(page_title="Oceania", page_icon="🇦🇺", layout="wide")
 
 st.subheader("Oceania")
@@ -15,23 +18,37 @@ st.markdown("""
             - Micronésia
             - Polinésia
             
-            Seus principais países são: Austrália, Papua-Nova Guiné, Nova Zelândia, Fiji e Ilhas Salomão.
+            Seus principais países são: Austrália e Nova Zelândia.
             """)
 st.divider()
 
+fig11 = px.bar(
+        oceania_populosos,
+        x="país",
+        y="pop",
+        color="pop",
+        color_continuous_scale="reds",
+        text_auto=True
+    ).update_layout(title="Populações Oceania",
+                        xaxis_title="Países",
+                        yaxis_title="População",
+                        legend_title="População",
+                    template="plotly_white",hovermode="x").update_traces(hovertemplate=None)
+
+fig12 = px.scatter(oceania[oceania["ano"]==2007],
+                                 x="PIBpercap",
+                                 y="ExpVida",
+                                 color="país",
+                                 size="pop",
+                                 size_max=45,
+                                 template="plotly_white",
+                                 log_x=True,
+                                 hover_data={"pop":False}
+    ).update_layout(title="Indicadores Socioeconômicos Oceania",
+                  xaxis_title = "PIB per Capita",
+                  yaxis_title = "Expectativa de Vida").update_traces(hovertemplate=None)
+
 col1, col2 = st.columns(2)
 
-col1.plotly_chart(grafico_barras_populosos("Oceania","Bluered"))
-col2.plotly_chart(grafico_bolhas("Oceania"))
-
-mais_populoso, maior_expectativa_vida, maior_pib_per_capita, menos_populoso,menor_expectativa_vida, menor_pib_per_capita = calcular_metricas_continente("Oceania")
-
-col3, col4, col5 = st.columns(3)
-col6, col7, col8 = st.columns(3)
-
-col3.metric(label="Mais Populoso", value=f"{mais_populoso}")
-col4.metric(label="Maior Expectativa de Vida", value=f"{maior_expectativa_vida}")
-col5.metric(label="Maior PIB per Capita", value=f"{maior_pib_per_capita}")
-col6.metric(label="Menos Populoso", value=f"{menos_populoso}")
-col7.metric(label="Menor Expectativa de Vida", value=f"{menor_expectativa_vida}")
-col8.metric(label="Menor PIB per Capita", value=f"{menor_pib_per_capita}")
+col1.plotly_chart(fig11)
+col2.plotly_chart(fig12)
