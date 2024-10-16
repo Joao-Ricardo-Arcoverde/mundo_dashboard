@@ -1,8 +1,15 @@
 import streamlit as st
 import plotly.express as px
 import json
-from Mundo import *
-
+mundo = px.data.gapminder().rename(columns={"country":"país",
+                              "continent":"continente",
+                              "year":"ano",
+                               "lifeExp":"ExpVida",
+                               "pop":"pop",
+                               "gdpPercap":"PIBpercap",
+                               "iso_alpha":"sigla",
+                                "iso_num":"num_sigla",
+                                 })
 asia = mundo[mundo["continente"]=="Asia"]
 asia_populosos = asia[asia["ano"]==2007].sort_values("pop", ascending=False)
 
